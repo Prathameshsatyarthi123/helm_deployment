@@ -1,0 +1,15 @@
+{{- if .Values.metricsService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.metricsService.name }}
+  labels:
+    app: {{ .Values.metricsService.name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Values.metricsService.name }}
+  ports:
+    - port: {{ .Values.metricsService.servicePort }}
+      targetPort: {{ .Values.metricsService.containerPort }}
+{{- end }}

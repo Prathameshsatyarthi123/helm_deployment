@@ -1,0 +1,31 @@
+replicaCount: 1
+
+pingService:
+  enabled: true
+  name: ping-service
+  image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microserviceone:latest
+  containerPort: 8002
+  servicePort: 8002
+
+metricsService:
+  enabled: true
+  name: metrics-service
+  image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservicetwo:latest
+  containerPort: 8001
+  servicePort: 8001
+
+ingress:
+  enabled: true
+  name: microservices-ingress
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+  paths:
+    - path: /ping
+      serviceName: ping-service
+      servicePort: 8002
+    - path: /metrics
+      serviceName: metrics-service
+      servicePort: 8001

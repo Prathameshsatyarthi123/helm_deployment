@@ -1,0 +1,23 @@
+{{- if .Values.pingService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.pingService.name }}
+  labels:
+    app: {{ .Values.pingService.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.pingService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.pingService.name }}
+    spec:
+      containers:
+        - name: {{ .Values.pingService.name }}
+          image: {{ .Values.pingService.image }}
+          ports:
+            - containerPort: {{ .Values.pingService.containerPort }}
+{{- end }}

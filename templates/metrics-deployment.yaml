@@ -1,0 +1,23 @@
+{{- if .Values.metricsService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.metricsService.name }}
+  labels:
+    app: {{ .Values.metricsService.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.metricsService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.metricsService.name }}
+    spec:
+      containers:
+        - name: {{ .Values.metricsService.name }}
+          image: {{ .Values.metricsService.image }}
+          ports:
+            - containerPort: {{ .Values.metricsService.containerPort }}
+{{- end }}

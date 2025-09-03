@@ -1,0 +1,15 @@
+{{- if .Values.pingService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.pingService.name }}
+  labels:
+    app: {{ .Values.pingService.name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Values.pingService.name }}
+  ports:
+    - port: {{ .Values.pingService.servicePort }}
+      targetPort: {{ .Values.pingService.containerPort }}
+{{- end }}
