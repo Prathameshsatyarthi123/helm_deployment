@@ -2,15 +2,12 @@ pipeline {
     agent any
 
     environment {
-        AWS_DEFAULT_REGION = 'us-east-1'
-        CLUSTER_NAME = 'my-eks-cluster'
-        CHART_PATH = './charts/myservice'
-        RELEASE_NAME = "myservice-${env.BRANCH_NAME}" // separate release per branch
-        NAMESPACE = 'default'
+        CLUSTER_NAME       = "my-eks-cluster"
+        AWS_DEFAULT_REGION = "us-east-1"
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
@@ -23,8 +20,14 @@ pipeline {
                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
-                    aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
-                    kubectl get nodes
+                        echo "🔑 Verifying AWS credentials..."
+                        aws sts get-caller-identity
+
+                        echo "⚙️ Updating kubeconfig for EKS..."
+                        aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
+
+                        echo "📦 Checking Kubernetes nodes..."
+                        kubectl get nodes
                     '''
                 }
             }
@@ -33,7 +36,9 @@ pipeline {
         stage('Deploy with Helm') {
             steps {
                 sh '''
-                helm upgrade --install $RELEASE_NAME $CHART_PATH --namespace $NAMESPACE --create-namespace
+                    echo "🚀 Deploying Helm chart..."
+                    helm upgrade --install myservice-main ./charts/myservice \
+                        --namespace default --create-namespace
                 '''
             }
         }
