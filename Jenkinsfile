@@ -13,7 +13,7 @@ pipeline {
             }
         }
 
-        stage('Configure AWS & EKS') {
+        stage('Configure AWS, EKS & Deploy with Helm') {
             steps {
                 withCredentials([
                     string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
@@ -28,19 +28,14 @@ pipeline {
 
                         echo "📦 Checking Kubernetes nodes..."
                         kubectl get nodes
+
+                        echo "🚀 Deploying Helm chart..."
+                        helm upgrade --install myservice-main ./charts/myservice \
+                            --namespace default --create-namespace
                     '''
                 }
             }
         }
-
-        stage('Deploy with Helm') {
-            steps {
-                sh '''
-                    echo "🚀 Deploying Helm chart..."
-                    helm upgrade --install myservice-main ./charts/myservice \
-                        --namespace default --create-namespace
-                '''
-            }
-        }
     }
 }
+
