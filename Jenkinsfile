@@ -31,7 +31,7 @@ pipeline {
 
                         echo "🚀 Deploying Helm chart..."
                         helm upgrade --install myservice-main . \
-                            --namespace default --create-namespace
+                            --namespace dev --create-namespace
                     '''
                 }
             }
