@@ -3,14 +3,14 @@ replicaCount: 1
 pingService:
   enabled: true
   name: ping-service
-  image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microserviceone:latest
+  image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:latest
   containerPort: 8002
   servicePort: 8002
 
 metricsService:
   enabled: true
   name: metrics-service
-  image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservicetwo:latest
+  image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:latest
   containerPort: 8001
   servicePort: 8001
 
