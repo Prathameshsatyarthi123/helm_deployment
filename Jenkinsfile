@@ -2,11 +2,17 @@ pipeline {
     agent any
 
     environment {
-        AWS_DEFAULT_REGION = 'us-east-1'
-        CLUSTER_NAME = 'my-eks-cluster'
+        CLUSTER_NAME       = "my-eks-cluster"
+        AWS_DEFAULT_REGION = "us-east-1"
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Configure AWS, EKS & Deploy with Helm') {
             steps {
                 withCredentials([
