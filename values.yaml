@@ -28,8 +28,9 @@ ingress:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
   paths:
     - path: /ping
-      serviceName: {{ .Values.ping_svc.name }}
-      servicePort: {{ .Values.ping_svc.servicePort }}
+      serviceName: ping-service
+      servicePort: 8002
     - path: /metrics
-      serviceName: {{ .Values.metric_svc.name }}
-      servicePort: {{ .Values.metric_svc.servicePort }}
+      serviceName: metrics-service
+      servicePort: 8001
+
