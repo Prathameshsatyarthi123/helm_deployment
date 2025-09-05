@@ -16,8 +16,9 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ .serviceName }}
+                name: {{ tpl .serviceName $ }}
                 port:
-                  number: {{ .servicePort }}
+                  number: {{ tpl (printf "%v" .servicePort) $ }}
 {{- end }}
 {{- end }}
+
