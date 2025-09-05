@@ -27,6 +27,9 @@ ingress:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
   paths:
+    - path: /
+      serviceName: ping-service
+      servicePort: 8002
     - path: /ping
       serviceName: ping-service
       servicePort: 8002
