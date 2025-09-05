@@ -1,16 +1,20 @@
 replicaCount: 1
 
-pingService:
+ping_svc:
   enabled: true
   name: ping-service
-  image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:latest
+  image:
+    repository: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one
+    tag: "latest"
   containerPort: 8002
   servicePort: 8002
 
-metricsService:
+metric_svc:
   enabled: true
   name: metrics-service
-  image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:latest
+  image:
+    repository: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two
+    tag: "latest"
   containerPort: 8001
   servicePort: 8001
 
