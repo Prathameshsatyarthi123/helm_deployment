@@ -11,4 +11,4 @@ def root():
 # Ping endpoint
 @app.get("/ping")
 def ping():
-    return {"response": "pongae"}
+    return {"response": "pong"}
