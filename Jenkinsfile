@@ -4,9 +4,8 @@ pipeline {
     environment {
         CLUSTER_NAME       = "my-eks-cluster"
         AWS_DEFAULT_REGION = "us-east-1"
-        AWS_ACCOUNT_ID     = "242201311297"
-        ECR_URI            = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
-        IMAGE_TAG          = "${env.BUILD_NUMBER}" // or use GIT_COMMIT for traceability
+        ECR_URI            = "242201311297.dkr.ecr.us-east-1.amazonaws.com"
+        IMAGE_TAG          = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -23,13 +22,9 @@ pipeline {
                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
-                        echo "🔑 Logging in to Amazon ECR..."
                         aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
-
                         echo "🔨 Building Docker image for microservice-one..."
                         docker build -t $ECR_URI/microservice-one:$IMAGE_TAG -f ./ping_svc/Dockerfile.ping ./ping_svc
-
-                        echo "📦 Pushing Docker image for microservice-one..."
                         docker push $ECR_URI/microservice-one:$IMAGE_TAG
                     '''
                 }
@@ -45,8 +40,6 @@ pipeline {
                     sh '''
                         echo "🔨 Building Docker image for microservice-two..."
                         docker build -t $ECR_URI/microservice-two:$IMAGE_TAG -f ./metric_svc/Dockerfile.metrics ./metric_svc
-
-                        echo "📦 Pushing Docker image for microservice-two..."
                         docker push $ECR_URI/microservice-two:$IMAGE_TAG
                     '''
                 }
@@ -60,16 +53,14 @@ pipeline {
                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
-                        echo "⚙️ Updating kubeconfig for EKS..."
                         aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
-
                         echo "🚀 Deploying Helm chart with both updated images..."
                         helm upgrade --install myservice-main . \
-                            --namespace dev --create-namespace \
-                            --set ping_svc.image.repository=$ECR_URI/microservice-one \
-                            --set ping_svc.image.tag=$IMAGE_TAG \
-                            --set metric_svc.image.repository=$ECR_URI/microservice-two \
-                            --set metric_svc.image.tag=$IMAGE_TAG
+                          --namespace dev --create-namespace \
+                          --set ping_svc.image.repository=$ECR_URI/microservice-one \
+                          --set ping_svc.image.tag=$IMAGE_TAG \
+                          --set metric_svc.image.repository=$ECR_URI/microservice-two \
+                          --set metric_svc.image.tag=$IMAGE_TAG
                     '''
                 }
             }
