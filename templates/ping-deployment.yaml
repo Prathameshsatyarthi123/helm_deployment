@@ -1,23 +1,23 @@
-{{- if .Values.pingService.enabled }}
+{{- if .Values.ping_svc.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.pingService.name }}
+  name: {{ .Values.ping_svc.name }}
   labels:
-    app: {{ .Values.pingService.name }}
+    app: {{ .Values.ping_svc.name }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ .Values.pingService.name }}
+      app: {{ .Values.ping_svc.name }}
   template:
     metadata:
       labels:
-        app: {{ .Values.pingService.name }}
+        app: {{ .Values.ping_svc.name }}
     spec:
       containers:
-        - name: {{ .Values.pingService.name }}
-          image: {{ .Values.pingService.image }}
+        - name: {{ .Values.ping_svc.name }}
+          image: "{{ .Values.ping_svc.image.repository }}:{{ .Values.ping_svc.image.tag }}"
           ports:
-            - containerPort: {{ .Values.pingService.containerPort }}
+            - containerPort: {{ .Values.ping_svc.containerPort }}
 {{- end }}
