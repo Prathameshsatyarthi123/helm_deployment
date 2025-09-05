@@ -71,7 +71,7 @@ pipeline {
         stage('Manual Rollback Approval') {
             steps {
                 script {
-                    timeout(time: 10, unit: 'MINUTES') { // give 10 min to approve rollback
+                    timeout(time: 10, unit: 'MINUTES') { // 10 min window for rollback
                         def userInput = input(
                             id: 'Proceed1',
                             message: 'Do you want to rollback?',
@@ -81,10 +81,15 @@ pipeline {
                         )
                         if (userInput == 'Yes') {
                             echo "⚠️ Rolling back Helm release..."
-                            sh '''
-                                aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
-                                helm rollback $RELEASE_NAME 0 --namespace $NAMESPACE
-                            '''
+                            withCredentials([
+                                string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+                                string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                            ]) {
+                                sh '''
+                                    aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
+                                    helm rollback $RELEASE_NAME 0 --namespace $NAMESPACE
+                                '''
+                            }
                         } else {
                             echo "✅ Proceeding without rollback."
                         }
@@ -101,3 +106,4 @@ pipeline {
         }
     }
 }
+
