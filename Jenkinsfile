@@ -27,7 +27,7 @@ pipeline {
                         aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
 
                         echo "🔨 Building Docker image for microservice-one..."
-                        docker build -t $ECR_URI/microservice-one:$IMAGE_TAG ./ping_svc
+                        docker build -t $ECR_URI/microservice-two:$IMAGE_TAG -f ./metric_svc/Dockerfile.metrics ./metric_svc
 
                         echo "📦 Pushing Docker image for microservice-one..."
                         docker push $ECR_URI/microservice-one:$IMAGE_TAG
@@ -44,7 +44,7 @@ pipeline {
                 ]) {
                     sh '''
                         echo "🔨 Building Docker image for microservice-two..."
-                        docker build -t $ECR_URI/microservice-two:$IMAGE_TAG ./metric_svc
+                        docker build -t $ECR_URI/microservice-two:$IMAGE_TAG -f ./metric_svc/Dockerfile.metrics ./metric_svc
 
                         echo "📦 Pushing Docker image for microservice-two..."
                         docker push $ECR_URI/microservice-two:$IMAGE_TAG
