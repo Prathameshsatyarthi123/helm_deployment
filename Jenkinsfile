@@ -2,31 +2,28 @@ pipeline {
     agent any
 
     environment {
-        CLUSTER_NAME       = "my-eks-cluster"
         AWS_DEFAULT_REGION = "us-east-1"
-        ECR_URI            = "242201311297.dkr.ecr.us-east-1.amazonaws.com"
-        IMAGE_TAG          = "${BUILD_NUMBER}"
+        ECR_REGISTRY       = "242201311297.dkr.ecr.us-east-1.amazonaws.com"
+        CLUSTER_NAME       = "my-eks-cluster"
+        HELM_RELEASE       = "myservice-main"
+        HELM_NAMESPACE     = "dev"
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Build & Push microservice-one') {
             steps {
                 withCredentials([
                     string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
-                    sh '''
-                        aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
+                    script {
+                        def IMAGE_TAG = env.BUILD_NUMBER
                         echo "🔨 Building Docker image for microservice-one..."
-                        docker build -t $ECR_URI/microservice-one:$IMAGE_TAG -f ./ping_svc/Dockerfile.ping ./ping_svc
-                        docker push $ECR_URI/microservice-one:$IMAGE_TAG
-                    '''
+                        sh """
+                            docker build -t $ECR_REGISTRY/microservice-one:${IMAGE_TAG} -f ./ping_svc/Dockerfile.ping ./ping_svc
+                            docker push $ECR_REGISTRY/microservice-one:${IMAGE_TAG}
+                        """
+                    }
                 }
             }
         }
@@ -37,11 +34,14 @@ pipeline {
                     string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
-                    sh '''
+                    script {
+                        def IMAGE_TAG = env.BUILD_NUMBER
                         echo "🔨 Building Docker image for microservice-two..."
-                        docker build -t $ECR_URI/microservice-two:$IMAGE_TAG -f ./metric_svc/Dockerfile.metrics ./metric_svc
-                        docker push $ECR_URI/microservice-two:$IMAGE_TAG
-                    '''
+                        sh """
+                            docker build -t $ECR_REGISTRY/microservice-two:${IMAGE_TAG} -f ./metric_svc/Dockerfile.metrics ./metric_svc
+                            docker push $ECR_REGISTRY/microservice-two:${IMAGE_TAG}
+                        """
+                    }
                 }
             }
         }
@@ -52,16 +52,19 @@ pipeline {
                     string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
-                    sh '''
-                        aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
+                    script {
+                        def IMAGE_TAG = env.BUILD_NUMBER
+                        sh "aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME"
+
                         echo "🚀 Deploying Helm chart with both updated images..."
-                        helm upgrade --install myservice-main . \
-                          --namespace dev --create-namespace \
-                          --set ping_svc.image.repository=$ECR_URI/microservice-one \
-                          --set ping_svc.image.tag=$IMAGE_TAG \
-                          --set metric_svc.image.repository=$ECR_URI/microservice-two \
-                          --set metric_svc.image.tag=$IMAGE_TAG
-                    '''
+                        sh """
+                            helm upgrade --install $HELM_RELEASE . --namespace $HELM_NAMESPACE --create-namespace \
+                                --set ping_svc.image.repository=$ECR_REGISTRY/microservice-one \
+                                --set ping_svc.image.tag=${IMAGE_TAG} \
+                                --set metric_svc.image.repository=$ECR_REGISTRY/microservice-two \
+                                --set metric_svc.image.tag=${IMAGE_TAG}
+                        """
+                    }
                 }
             }
         }
@@ -69,42 +72,36 @@ pipeline {
         stage('Manual Rollback Approval') {
             steps {
                 script {
-                    timeout(time: 2, unit: 'MINUTES') {
-                        // Fetch available revisions dynamically
-                        def revisions = sh(
-                            script: "helm history myservice-main --namespace dev --output json | jq -r '.[].revision'",
-                            returnStdout: true
-                        ).trim().split("\n")
-
-                        def userInput = input(
-                            id: 'RollbackInput',
-                            message: 'Select revision to rollback',
-                            parameters: [
-                                choice(name: 'REVISION', choices: revisions.join('\n'), description: 'Pick a Helm revision to rollback to')
-                            ]
-                        )
-
-                        echo "⚠️ Rolling back Helm release to revision ${userInput}..."
+                    timeout(time: 10, unit: 'MINUTES') {
                         withCredentials([
                             string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
                             string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                         ]) {
-                            sh """
-                                aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
-                                helm rollback myservice-main ${userInput} --namespace dev
-                            """
+                            sh "aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME"
+
+                            // Get available helm revisions
+                            def revisions = sh(
+                                script: "helm history $HELM_RELEASE --namespace $HELM_NAMESPACE --output json | jq -r '.[].revision'",
+                                returnStdout: true
+                            ).trim().split("\n")
+
+                            // Show dropdown for rollback selection
+                            def userInput = input(
+                                id: 'RollbackInput',
+                                message: 'Do you want to rollback? Select revision:',
+                                parameters: [
+                                    choice(name: 'REVISION', choices: revisions.join('\n'), description: 'Pick a Helm revision to rollback to')
+                                ]
+                            )
+
+                            echo "⚠️ Rolling back Helm release to revision ${userInput}..."
+                            sh "helm rollback $HELM_RELEASE ${userInput} --namespace $HELM_NAMESPACE"
                         }
                     }
                 }
             }
         }
     }
-
-    post {
-        failure {
-            echo "❌ Pipeline failed. You can rollback manually with:"
-            echo "   helm rollback myservice-main <REVISION> --namespace dev"
-        }
-    }
 }
+
 
