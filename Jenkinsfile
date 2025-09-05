@@ -6,6 +6,8 @@ pipeline {
         AWS_DEFAULT_REGION = "us-east-1"
         ECR_URI            = "242201311297.dkr.ecr.us-east-1.amazonaws.com"
         IMAGE_TAG          = "${BUILD_NUMBER}"
+        RELEASE_NAME       = "myservice-main"
+        NAMESPACE          = "dev"
     }
 
     stages {
@@ -55,8 +57,8 @@ pipeline {
                     sh '''
                         aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
                         echo "🚀 Deploying Helm chart with both updated images..."
-                        helm upgrade --install myservice-main . \
-                          --namespace dev --create-namespace \
+                        helm upgrade --install $RELEASE_NAME . \
+                          --namespace $NAMESPACE --create-namespace \
                           --set ping_svc.image.repository=$ECR_URI/microservice-one \
                           --set ping_svc.image.tag=$IMAGE_TAG \
                           --set metric_svc.image.repository=$ECR_URI/microservice-two \
@@ -64,6 +66,38 @@ pipeline {
                     '''
                 }
             }
+        }
+
+        stage('Manual Rollback Approval') {
+            steps {
+                script {
+                    timeout(time: 10, unit: 'MINUTES') { // give 10 min to approve rollback
+                        def userInput = input(
+                            id: 'Proceed1',
+                            message: 'Do you want to rollback?',
+                            parameters: [
+                                choice(name: 'ROLLBACK', choices: ['No', 'Yes'], description: 'Rollback deployment?')
+                            ]
+                        )
+                        if (userInput == 'Yes') {
+                            echo "⚠️ Rolling back Helm release..."
+                            sh '''
+                                aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
+                                helm rollback $RELEASE_NAME 0 --namespace $NAMESPACE
+                            '''
+                        } else {
+                            echo "✅ Proceeding without rollback."
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "❌ Pipeline failed. You can rollback manually with:"
+            echo "helm rollback $RELEASE_NAME 0 --namespace $NAMESPACE"
         }
     }
 }
