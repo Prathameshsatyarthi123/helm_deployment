@@ -64,7 +64,7 @@ pipeline {
             steps {
                 script {
                     catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
-                        timeout(time: 3, unit: 'MINUTES') {
+                        timeout(time: 10, unit: 'MINUTES') {
                             withCredentials([
                                 string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
                                 string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
