@@ -63,6 +63,7 @@ pipeline {
         stage('Manual Rollback Approval') {
             steps {
                 script {
+                    // ✅ Skip stage if no input within 10 minutes
                     catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
                         timeout(time: 10, unit: 'MINUTES') {
                             withCredentials([
@@ -71,26 +72,34 @@ pipeline {
                             ]) {
                                 sh "aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME"
 
-                                // Fetch available revisions dynamically
+                                // Get Helm revisions dynamically
                                 def revisions = sh(
                                     script: "helm history myservice-main --namespace dev --output json | jq -r '.[].revision'",
                                     returnStdout: true
                                 ).trim().split("\\n")
 
-                                def userInput = input(
-                                    id: 'RollbackInput',
-                                    message: 'Select revision to rollback (or wait 10min to skip)',
-                                    parameters: [
-                                        choice(
-                                            name: 'REVISION',
-                                            choices: revisions.join("\n"),   // ✅ real newlines
-                                            description: 'Pick a Helm revision to rollback to'
+                                if (revisions.length > 0) {
+                                    try {
+                                        def userInput = input(
+                                            id: 'RollbackInput',
+                                            message: 'Select revision to rollback (or wait 10min to skip)',
+                                            parameters: [
+                                                choice(
+                                                    name: 'REVISION',
+                                                    choices: revisions.join("\n"),
+                                                    description: 'Pick a Helm revision to rollback to'
+                                                )
+                                            ]
                                         )
-                                    ]
-                                )
-
-                                echo "⚠️ Rolling back Helm release to revision ${userInput}..."
-                                sh "helm rollback myservice-main ${userInput} --namespace dev"
+                                        echo "⚠️ Rolling back Helm release to revision ${userInput}..."
+                                        sh "helm rollback myservice-main ${userInput} --namespace dev"
+                                    } catch(err) {
+                                        // Input was skipped or timed out
+                                        echo "⏩ No rollback selected, skipping this stage..."
+                                    }
+                                } else {
+                                    echo "⚠️ No previous revisions found, skipping rollback stage..."
+                                }
                             }
                         }
                     }
@@ -108,5 +117,4 @@ pipeline {
         }
     }
 }
-
 
