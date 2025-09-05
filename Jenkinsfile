@@ -70,7 +70,7 @@ pipeline {
             steps {
                 script {
                     catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
-                        timeout(time: 10, unit: 'MINUTES') {
+                        timeout(time: 3, unit: 'MINUTES') {
                             // Fetch available revisions dynamically
                             def revisions = sh(
                                 script: "helm history myservice-main --namespace dev --output json | jq -r '.[].revision'",
