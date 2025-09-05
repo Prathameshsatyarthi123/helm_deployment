@@ -64,7 +64,7 @@ pipeline {
                         aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $CLUSTER_NAME
 
                         echo "🚀 Deploying Helm chart with both updated images..."
-                        helm upgrade --install my-microservices . \
+                        helm upgrade --install myservice-main . \
                             --namespace dev --create-namespace \
                             --set ping_svc.image.repository=$ECR_URI/microservice-one \
                             --set ping_svc.image.tag=$IMAGE_TAG \
