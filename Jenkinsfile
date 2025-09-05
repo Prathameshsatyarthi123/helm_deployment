@@ -83,7 +83,7 @@ pipeline {
                                     parameters: [
                                         choice(
                                             name: 'REVISION',
-                                            choices: revisions.join('\\n'),
+                                            choices: revisions.join("\n"),   // ✅ real newlines
                                             description: 'Pick a Helm revision to rollback to'
                                         )
                                     ]
