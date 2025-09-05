@@ -1,23 +1,23 @@
-{{- if .Values.metricsService.enabled }}
+{{- if .Values.metric_svc.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.metricsService.name }}
+  name: {{ .Values.metric_svc.name }}
   labels:
-    app: {{ .Values.metricsService.name }}
+    app: {{ .Values.metric_svc.name }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ .Values.metricsService.name }}
+      app: {{ .Values.metric_svc.name }}
   template:
     metadata:
       labels:
-        app: {{ .Values.metricsService.name }}
+        app: {{ .Values.metric_svc.name }}
     spec:
       containers:
-        - name: {{ .Values.metricsService.name }}
-          image: {{ .Values.metricsService.image }}
+        - name: {{ .Values.metric_svc.name }}
+          image: "{{ .Values.metric_svc.image.repository }}:{{ .Values.metric_svc.image.tag }}"
           ports:
-            - containerPort: {{ .Values.metricsService.containerPort }}
+            - containerPort: {{ .Values.metric_svc.containerPort }}
 {{- end }}
