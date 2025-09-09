@@ -1,0 +1,52 @@
+name: Build & Push Docker Images
+
+on:
+  push:
+    branches: [ "main" ]   # CI runs when you push to main
+
+permissions:
+  id-token: write   # required for OIDC
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::242201311297:role/GitHubActionsECRRole
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag, and Push microservice-one
+        run: |
+          IMAGE_TAG=${GITHUB_RUN_NUMBER}
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/microservice-one:$IMAGE_TAG -f ./ping_svc/Dockerfile.ping ./ping_svc
+          docker push ${{ steps.login-ecr.outputs.registry }}/microservice-one:$IMAGE_TAG
+
+      - name: Build, Tag, and Push microservice-two
+        run: |
+          IMAGE_TAG=${GITHUB_RUN_NUMBER}
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/microservice-two:$IMAGE_TAG -f ./metric_svc/Dockerfile.metrics ./metric_svc
+          docker push ${{ steps.login-ecr.outputs.registry }}/microservice-two:$IMAGE_TAG
+
+      - name: Update GitOps repo with new image tags
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git clone https://github.com/Prathameshsatyarthi123/helm_deployment-gitops.git gitops
+          cd gitops
+          IMAGE_TAG=${GITHUB_RUN_NUMBER}
+          yq e -i '.ping_svc.image.tag = strenv(IMAGE_TAG)' values.yaml
+          yq e -i '.metric_svc.image.tag = strenv(IMAGE_TAG)' values.yaml
+          git add values.yaml
+          git commit -m "Update images to tag $IMAGE_TAG"
+          git push
