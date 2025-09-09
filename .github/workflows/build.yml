@@ -1,52 +1,28 @@
-name: Build & Push Docker Images
-
-on:
-  push:
-    branches: [ "main" ]   # CI runs when you push to main
-
-permissions:
-  id-token: write   # required for OIDC
-  contents: read
-
 jobs:
-  build:
+  update-gitops:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout CI repo (helm_deployment)
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
         with:
-          role-to-assume: arn:aws:iam::242201311297:role/GitHubActionsECRRole
-          aws-region: us-east-1
+          repository: Prathameshsatyarthi123/helm_deployment-gitops
+          token: ${{ secrets.GITOPS_PAT }}   # 🔑 uses your PAT
+          path: gitops   # this will clone into ./gitops folder
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, Tag, and Push microservice-one
+      - name: Update image tag in values.yaml
         run: |
-          IMAGE_TAG=${GITHUB_RUN_NUMBER}
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/microservice-one:$IMAGE_TAG -f ./ping_svc/Dockerfile.ping ./ping_svc
-          docker push ${{ steps.login-ecr.outputs.registry }}/microservice-one:$IMAGE_TAG
+          cd gitops/dev
+          yq -i '.ping_svc.image.tag = "${{ github.run_number }}"' values.yaml
+          yq -i '.metric_svc.image.tag = "${{ github.run_number }}"' values.yaml
 
-      - name: Build, Tag, and Push microservice-two
+      - name: Commit and push changes
         run: |
-          IMAGE_TAG=${GITHUB_RUN_NUMBER}
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/microservice-two:$IMAGE_TAG -f ./metric_svc/Dockerfile.metrics ./metric_svc
-          docker push ${{ steps.login-ecr.outputs.registry }}/microservice-two:$IMAGE_TAG
-
-      - name: Update GitOps repo with new image tags
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-          git clone https://github.com/Prathameshsatyarthi123/helm_deployment-gitops.git gitops
           cd gitops
-          IMAGE_TAG=${GITHUB_RUN_NUMBER}
-          yq e -i '.ping_svc.image.tag = strenv(IMAGE_TAG)' values.yaml
-          yq e -i '.metric_svc.image.tag = strenv(IMAGE_TAG)' values.yaml
-          git add values.yaml
-          git commit -m "Update images to tag $IMAGE_TAG"
-          git push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Update image tags to ${{ github.run_number }}"
+          git push origin main
