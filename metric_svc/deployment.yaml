@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: metrics-service
-        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservicetwo  # Replace with your image
+        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two  # Replace with your image
         ports:
         - containerPort: 8001  # Replace with your actual port
         resources:
