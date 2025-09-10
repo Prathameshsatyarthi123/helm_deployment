@@ -29,7 +29,7 @@ jobs:
       - name: Build & Push ping_svc
         run: |
           IMAGE_URI=242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one
-          docker build -t $IMAGE_URI:latest -f Dockerfile.ping ./ping_svc
+          docker build -t $IMAGE_URI:latest -f ./ping_svc/Dockerfile.ping ./ping_svc
           docker push $IMAGE_URI:latest
 
       # Build & Push Metric Service
