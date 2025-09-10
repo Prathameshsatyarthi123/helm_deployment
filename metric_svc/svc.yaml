@@ -1,13 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
+  annotations:
+    argocd.argoproj.io/tracking-id: test-app:/Service:dev/metrics-service
   name: metrics-service
   namespace: dev
 spec:
+  ports:
+    - port: 8001
+      protocol: TCP
+      targetPort: 8001
   selector:
     app: metrics-service
-  ports:
-  - protocol: TCP
-    port: 8001
-    targetPort: 8001
   type: ClusterIP
