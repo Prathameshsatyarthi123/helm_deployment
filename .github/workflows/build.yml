@@ -46,10 +46,8 @@ jobs:
           sed -i "s|microservice-two:.*|microservice-two:latest|g" values.yaml
 
       # Commit changes so ArgoCD picks it up
-      - name: Commit changes
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add values.yaml
-          git commit -m "Update images to latest"
-          git push
+     - name: Commit changes
+       run: |
+         git add .
+         git commit -m "Update image tag" || echo "No changes to commit"
+         git push
