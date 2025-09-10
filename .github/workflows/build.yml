@@ -36,7 +36,7 @@ jobs:
       - name: Build & Push metric_svc
         run: |
           IMAGE_URI=242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two
-          docker build -t $IMAGE_URI:latest ./metric_svc
+          docker build -t $IMAGE_URI:latest -f ./metric_svc/Dockerfile.metrics ./metric_svc
           docker push $IMAGE_URI:latest
 
       # Update Helm values.yaml with new image tags
