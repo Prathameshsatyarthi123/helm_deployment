@@ -1,118 +1,55 @@
-name: Build and Deploy Application
+name: CI - Build & Push Images
 
 on:
   push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
-
-env:
-  AWS_REGION: us-east-1
-  ECR_REGISTRY: 242201311297.dkr.ecr.us-east-1.amazonaws.com
-  ECR_REPOSITORY: helm-deployment-app  # Change this to your ECR repo name
-  AWS_ACCOUNT_ID: 242201311297
-
-permissions:
-  id-token: write
-  contents: read
+    branches:
+      - main
 
 jobs:
   build-and-push:
-    name: Build and Push to ECR
     runs-on: ubuntu-latest
-    
-    outputs:
-      image-tag: ${{ steps.build-image.outputs.image-tag }}
-      image-uri: ${{ steps.build-image.outputs.image-uri }}
-    
+    permissions:
+      id-token: write
+      contents: write
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::242201311297:role/GitHubActionsRole
-        role-session-name: GitHub_to_AWS_via_FederatedOIDC
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::242201311297:role/GitHubOIDCRole  # Replace with actual IAM role ARN
+          aws-region: us-east-1
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image
-      run: |
-        # Generate image tag
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          IMAGE_TAG="prod-${{ github.sha }}"
-        else
-          IMAGE_TAG="dev-${{ github.sha }}"
-        fi
-        
-        # Build and push image
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        
-        # Set outputs
-        echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-        echo "image-uri=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-        echo "Built and pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      # Build & Push Ping Service
+      - name: Build & Push ping_svc
+        run: |
+          IMAGE_URI=242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one
+          docker build -t $IMAGE_URI:latest ./ping_svc
+          docker push $IMAGE_URI:latest
 
-  update-manifests:
-    name: Update K8s Manifests
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.event_name == 'push'
-    
-    steps:
-    - name: Checkout manifests repository
-      uses: actions/checkout@v4
-      with:
-        repository: Prathameshsatyarthi123/k8s-manifests
-        token: ${{ secrets.GITHUB_PAT }}
-        path: k8s-manifests
+      # Build & Push Metric Service
+      - name: Build & Push metric_svc
+        run: |
+          IMAGE_URI=242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two
+          docker build -t $IMAGE_URI:latest ./metric_svc
+          docker push $IMAGE_URI:latest
 
-    - name: Update deployment manifest
-      env:
-        IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
-        IMAGE_URI: ${{ needs.build-and-push.outputs.image-uri }}
-      run: |
-        cd k8s-manifests
-        
-        # Determine environment based on branch
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          ENVIRONMENT="production"
-        else
-          ENVIRONMENT="staging"
-        fi
-        
-        echo "Updating $ENVIRONMENT environment with image: $IMAGE_URI"
-        
-        # Update the deployment file - adjust path based on your manifest structure
-        sed -i "s|image: 242201311297\.dkr\.ecr\.us-east-1\.amazonaws\.com/helm-deployment-app:.*|image: $IMAGE_URI|g" \
-          environments/$ENVIRONMENT/helm-deployment/deployment.yaml
-        
-        # Update values.yaml if you're using Helm in ArgoCD
-        if [ -f "environments/$ENVIRONMENT/helm-deployment/values.yaml" ]; then
-          sed -i "s|tag: .*|tag: \"$IMAGE_TAG\"|g" environments/$ENVIRONMENT/helm-deployment/values.yaml
-        fi
+      # Update Helm values.yaml with new image tags
+      - name: Update Helm values.yaml
+        run: |
+          sed -i "s|microservice-one:.*|microservice-one:latest|g" values.yaml
+          sed -i "s|microservice-two:.*|microservice-two:latest|g" values.yaml
 
-    - name: Commit and push changes
-      run: |
-        cd k8s-manifests
-        
-        # Determine environment
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          ENVIRONMENT="production"
-        else
-          ENVIRONMENT="staging"
-        fi
-        
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-        
-        git add .
-        git commit -m "Update helm-deployment image to ${{ needs.build-and-push.outputs.image-tag }} in $ENVIRONMENT" || exit 0
-        git push origin main
+      # Commit changes so ArgoCD picks it up
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add values.yaml
+          git commit -m "Update images to latest"
+          git push
