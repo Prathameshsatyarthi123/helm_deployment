@@ -4,7 +4,7 @@ ping_svc:
   enabled: true
   name: ping-service
   image:
-    repository: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one
+    repository: nginx
     tag: "latest"
   containerPort: 8002
   servicePort: 8002
