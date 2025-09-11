@@ -16,7 +16,7 @@ spec:
       containers:
       - name: metric-service
         image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:cc138feb-20250911-151130
-        imagePullPolicy: IfNotPresent  # safe for immutable tags
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8001
         resources:
@@ -26,15 +26,21 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
+        # Liveness: checks full /metric endpoint
         livenessProbe:
           httpGet:
             path: /metric
             port: 8001
           initialDelaySeconds: 30
-          periodSeconds: 10
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 5
+        # Readiness: lightweight check on root
         readinessProbe:
           httpGet:
-            path: /metric
+            path: /
             port: 8001
-          initialDelaySeconds: 10
-          periodSeconds: 5
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
