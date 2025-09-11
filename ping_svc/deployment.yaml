@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: ping-service
-        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microserviceone:latest  # Replace with your image
+        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:latest  # Replace with your image
         ports:
         - containerPort: 8002  # Replace with your actual port
         resources:
