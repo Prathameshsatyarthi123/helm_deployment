@@ -19,11 +19,11 @@ spec:
             name: ping-service
             port:
               number: 8002
-      - path: /metrics
+      - path: /metric
         pathType: Prefix
         backend:
           service:
-            name: metrics-service
+            name: metric-service
             port:
               number: 8001
 
