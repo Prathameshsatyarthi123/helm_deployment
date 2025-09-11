@@ -47,7 +47,7 @@ jobs:
         run: |
           # Update ping service deployment
           sed -i "s|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:.*|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:${{ steps.commit.outputs.sha }}|g" ./ping_svc/deployment.yaml
-          # Update metric service deployment (assuming similar structure)
+          # Update metric service deployment
           sed -i "s|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:.*|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:${{ steps.commit.outputs.sha }}|g" ./metric_svc/deployment.yaml
       
       # Commit changes so ArgoCD picks it up
@@ -56,4 +56,3 @@ jobs:
           git add .
           git commit -m "Update image tags to ${{ steps.commit.outputs.sha }}" || echo "No changes to commit"
           git push
-
