@@ -26,4 +26,3 @@ spec:
             name: metric-service
             port:
               number: 8001
-
