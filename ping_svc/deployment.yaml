@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: ping-service
-        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:latest  # This will be updated by CI
-        imagePullPolicy: Always  # IMPORTANT: This ensures new images are pulled
+        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:latest  # <-- CI will replace :latest with unique tag
+        imagePullPolicy: IfNotPresent  # safer with immutable tags
         ports:
         - containerPort: 8002
         resources:
@@ -38,3 +38,4 @@ spec:
             port: 8002
           initialDelaySeconds: 10
           periodSeconds: 5
+
