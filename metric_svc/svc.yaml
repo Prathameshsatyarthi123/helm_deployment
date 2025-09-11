@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: metrics-service
+  name: metric-service
   namespace: dev
   # Remove or comment out the tracking annotation temporarily
   # annotations:
@@ -12,5 +12,5 @@ spec:
       protocol: TCP
       targetPort: 8001
   selector:
-    app: metrics-service
+    app: metric-service
   type: ClusterIP
