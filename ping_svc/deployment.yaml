@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: ping-service
-        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:d576ee63-20250911-150624
+        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:8e09ed14-20250911-150943
         imagePullPolicy: IfNotPresent  # safer with immutable tags
         ports:
         - containerPort: 8002
