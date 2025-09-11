@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: metrics-service
-        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:6c06e4a5-20250911-144621
+        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:da53591a-20250911-144952
         ports:
         - containerPort: 8001
         resources:
