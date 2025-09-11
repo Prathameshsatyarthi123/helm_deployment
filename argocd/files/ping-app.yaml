@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ping-svc
+  namespace: argo-cd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/Prathameshsatyarthi123/helm_deployment.git'
+    targetRevision: main
+    path: ping_svc  # This should contain your deployment.yaml and svc.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true

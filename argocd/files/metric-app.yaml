@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metric-svc
+  namespace: argo-cd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/Prathameshsatyarthi123/helm_deployment.git'
+    targetRevision: main
+    path: metric_svc
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
