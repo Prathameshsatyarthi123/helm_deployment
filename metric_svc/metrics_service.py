@@ -1,4 +1,4 @@
-# metrics_service.py
+# metric_service.py
 from fastapi import FastAPI
 import psutil
 
@@ -7,11 +7,11 @@ app = FastAPI()
 # Root endpoint (for health check / default path)
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "metrics-service"}
+    return {"status": "ok", "service": "metric-service"}
 
-# Metrics endpoint
-@app.get("/metrics")
-def get_metrics():
+# metric endpoint
+@app.get("/metric")
+def get_metric():
     cpu_usage = psutil.cpu_percent(interval=1)
     memory = psutil.virtual_memory()
     return {
