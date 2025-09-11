@@ -1,21 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: metrics-service
+  name: metric-service
   namespace: dev
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: metrics-service
+      app: metric-service
   template:
     metadata:
       labels:
-        app: metrics-service
+        app: metric-service
     spec:
       containers:
-      - name: metrics-service
-        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:496eeb9b-20250911-145707
+      - name: metric-service
+        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:latest  # <-- CI will replace :latest with unique tag
+        imagePullPolicy: IfNotPresent  # safe for immutable tags
         ports:
         - containerPort: 8001
         resources:
@@ -25,3 +26,15 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 5
