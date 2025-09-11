@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: ping-service
-        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:latest  # <-- CI will replace :latest with unique tag
+        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:6c06e4a5-20250911-144621
         imagePullPolicy: IfNotPresent  # safer with immutable tags
         ports:
         - containerPort: 8002
