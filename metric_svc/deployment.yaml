@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: metric-service
-        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:b43bad5c-20250911-150046
+        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:d576ee63-20250911-150624
         imagePullPolicy: IfNotPresent  # safe for immutable tags
         ports:
         - containerPort: 8001
