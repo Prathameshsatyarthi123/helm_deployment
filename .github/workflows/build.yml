@@ -1,68 +1,64 @@
 name: CI - Build & Push Images
+
 on:
   push:
     branches:
       - main
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::242201311297:role/GitHubActionsECRRole
           aws-region: us-east-1
-          
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-        
+
       # Generate unique image tag
       - name: Generate image tag
         id: image-tag
         run: |
-          # Use commit SHA for unique tagging
           IMAGE_TAG=${GITHUB_SHA:0:8}-$(date +%Y%m%d-%H%M%S)
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "Generated image tag: $IMAGE_TAG"
-        
+
       # Build & Push Ping Service
       - name: Build & Push ping_svc
         run: |
           IMAGE_URI=242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one
           docker build -t $IMAGE_URI:${{ steps.image-tag.outputs.IMAGE_TAG }} -f ./ping_svc/Dockerfile.ping ./ping_svc
           docker push $IMAGE_URI:${{ steps.image-tag.outputs.IMAGE_TAG }}
-          # Also tag as latest for convenience
-          docker tag $IMAGE_URI:${{ steps.image-tag.outputs.IMAGE_TAG }} $IMAGE_URI:latest
-          docker push $IMAGE_URI:latest
-          
+
       # Build & Push Metric Service
       - name: Build & Push metric_svc
         run: |
           IMAGE_URI=242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two
           docker build -t $IMAGE_URI:${{ steps.image-tag.outputs.IMAGE_TAG }} -f ./metric_svc/Dockerfile.metrics ./metric_svc
           docker push $IMAGE_URI:${{ steps.image-tag.outputs.IMAGE_TAG }}
-          # Also tag as latest for convenience
-          docker tag $IMAGE_URI:${{ steps.image-tag.outputs.IMAGE_TAG }} $IMAGE_URI:latest
-          docker push $IMAGE_URI:latest
-          
-      # Update Helm values.yaml with new image tags
-      - name: Update Helm values.yaml
+
+      # Update deployment.yaml image tags
+      - name: Update image tags in deployment.yaml
         run: |
-          sed -i "s|microservice-one:.*|microservice-one:${{ steps.image-tag.outputs.IMAGE_TAG }}|g" values.yaml
-          sed -i "s|microservice-two:.*|microservice-two:${{ steps.image-tag.outputs.IMAGE_TAG }}|g" values.yaml
-          
+          sed -i "s|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:.*|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:${{ steps.image-tag.outputs.IMAGE_TAG }}|g" ping_svc/deployment.yaml
+          sed -i "s|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:.*|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:${{ steps.image-tag.outputs.IMAGE_TAG }}|g" metric_svc/deployment.yaml
+
       # Commit changes so ArgoCD picks it up
       - name: Commit changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "prathameshsatyarthi1@gmail.com"
+          git config --local user.name "Prathameshsatyarthi123"
           git add ping_svc/deployment.yaml metric_svc/deployment.yaml
           if git diff --staged --quiet; then
             echo "No changes to commit"
@@ -70,3 +66,4 @@ jobs:
             git commit -m "Update image tags to ${{ steps.image-tag.outputs.IMAGE_TAG }}"
             git push
           fi
+
