@@ -42,13 +42,26 @@ jobs:
           docker build -t $IMAGE_URI:${{ steps.commit.outputs.sha }} -f ./metric_svc/Dockerfile.metrics ./metric_svc
           docker push $IMAGE_URI:${{ steps.commit.outputs.sha }}
       
-      # Update deployment.yaml files with new image tags
       - name: Update deployment manifests
         run: |
-          # Update ping service deployment
-          sed -i "s|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:.*|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:${{ steps.commit.outputs.sha }}|g" ./ping_svc/deployment.yaml
-          # Update metric service deployment
-          sed -i "s|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:.*|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:${{ steps.commit.outputs.sha }}|g" ./metric_svc/deployment.yaml
+          NEW_TAG="${{ steps.commit.outputs.sha }}"
+          
+          # Update ping service - flexible spacing pattern
+          sed -i "s|image: 242201311297\.dkr\.ecr\.us-east-1\.amazonaws\.com/microservice-one:.*|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-one:${NEW_TAG}|g" ./ping_svc/deployment.yaml
+          
+          # Update metric service - flexible spacing pattern
+          sed -i "s|image: 242201311297\.dkr\.ecr\.us-east-1\.amazonaws\.com/microservice-two:.*|image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:${NEW_TAG}|g" ./metric_svc/deployment.yaml
+          
+          # Alternative approach using more specific pattern
+          sed -i "s|\(.*image: 242201311297\.dkr\.ecr\.us-east-1\.amazonaws\.com/microservice-one:\).*|\1${NEW_TAG}|g" ./ping_svc/deployment.yaml
+          sed -i "s|\(.*image: 242201311297\.dkr\.ecr\.us-east-1\.amazonaws\.com/microservice-two:\).*|\1${NEW_TAG}|g" ./metric_svc/deployment.yaml
+          
+          # Verify changes
+          echo "=== After Update ==="
+          echo "Ping service:"
+          grep -n "image:" ./ping_svc/deployment.yaml || echo "No image line found in ping service"
+          echo "Metric service:"
+          grep -n "image:" ./metric_svc/deployment.yaml || echo "No image line found in metric service"
       
       # Commit changes so ArgoCD picks it up
       - name: Commit changes
