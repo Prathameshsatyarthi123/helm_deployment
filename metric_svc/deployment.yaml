@@ -28,13 +28,13 @@ spec:
             cpu: "200m"
         livenessProbe:
           httpGet:
-            path: /metrics
+            path: /metric
             port: 8001
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /metrics
+            path: /metric
             port: 8001
           initialDelaySeconds: 10
           periodSeconds: 5
