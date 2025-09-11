@@ -15,9 +15,9 @@ spec:
     spec:
       containers:
       - name: metrics-service
-        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two  # Replace with your ima
+        image: 242201311297.dkr.ecr.us-east-1.amazonaws.com/microservice-two:latest
         ports:
-        - containerPort: 8001  # Replace with your actual port
+        - containerPort: 8001
         resources:
           requests:
             memory: "128Mi"
@@ -25,4 +25,3 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
-        
