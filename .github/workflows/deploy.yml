@@ -3,7 +3,7 @@ name: build-and-deploy
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [feature/helm-deployment]
   workflow_dispatch:
 
 permissions:
