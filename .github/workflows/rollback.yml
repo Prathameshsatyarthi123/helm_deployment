@@ -1,9 +1,11 @@
 name: rollback
 
 on:
-  push:
-    branches: [feature/helm-deployment]
-    paths: ['rollback/revision.txt']
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: "Helm revision to roll back to (see helm history myapp)"
+        required: true
 
 permissions:
   id-token: write
@@ -19,17 +21,14 @@ jobs:
   rollback:
     runs-on: ubuntu-latest
     concurrency:
-      group: deploy                # shares the lock with build-and-deploy
+      group: deploy
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Read the revision
-        id: rev
+      - name: Check the revision is a number
+        env:
+          REVISION: ${{ inputs.revision }}
         run: |
-          REV=$(head -n1 rollback/revision.txt | tr -d '[:space:]')
-          case "$REV" in ''|*[!0-9]*) echo "First line of rollback/revision.txt must be a single number"; exit 1;; esac
-          echo "revision=$REV" >> "$GITHUB_OUTPUT"
+          case "$REVISION" in ''|*[!0-9]*) echo "Revision must be a number"; exit 1;; esac
 
       - uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -43,7 +42,7 @@ jobs:
 
       - name: Show history, then roll back
         env:
-          REVISION: ${{ steps.rev.outputs.revision }}
+          REVISION: ${{ inputs.revision }}
         run: |
           helm history $RELEASE --namespace $NAMESPACE
           helm rollback $RELEASE "$REVISION" --namespace $NAMESPACE --wait --timeout 5m
