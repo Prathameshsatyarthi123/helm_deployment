@@ -1,0 +1,85 @@
+name: build-and-deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  CLUSTER: myapp-dev-eks
+  RELEASE: myapp
+  NAMESPACE: default
+  PING_REPO: service-b
+  METRIC_REPO: service-a
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Lint and render the chart
+        run: |
+          helm lint .
+          helm template $RELEASE . > /dev/null
+      - name: Build images (no push)
+        run: |
+          docker build -f ping_svc/Dockerfile.ping ping_svc
+          docker build -f metric_svc/Dockerfile.metrics metric_svc
+
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push images
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$PING_REPO:$TAG -f ping_svc/Dockerfile.ping ping_svc
+          docker push $REGISTRY/$PING_REPO:$TAG
+          docker build -t $REGISTRY/$METRIC_REPO:$TAG -f metric_svc/Dockerfile.metrics metric_svc
+          docker push $REGISTRY/$METRIC_REPO:$TAG
+
+      - uses: azure/setup-helm@v4
+
+      - name: Connect to the cluster
+        run: aws eks update-kubeconfig --name $CLUSTER --region $AWS_REGION
+
+      - name: Deploy with Helm
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+        run: |
+          helm upgrade --install $RELEASE . --namespace $NAMESPACE \
+            --set-string ping_svc.image.repository=$REGISTRY/$PING_REPO \
+            --set-string ping_svc.image.tag=$TAG \
+            --set-string metric_svc.image.repository=$REGISTRY/$METRIC_REPO \
+            --set-string metric_svc.image.tag=$TAG \
+            --rollback-on-failure --wait --timeout 5m
+
+      - name: Smoke test through the ALB
+        run: |
+          HOST=$(kubectl get ingress microservices-ingress -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          curl -fsS --retry 10 --retry-delay 10 --retry-all-errors http://$HOST/ping
+          curl -fsS --retry 10 --retry-delay 10 --retry-all-errors http://$HOST/metric
