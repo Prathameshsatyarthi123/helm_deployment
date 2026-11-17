@@ -20,4 +20,8 @@ jobs:
           aws-region: ap-south-1
       - run: aws sts get-caller-identity
       - run: aws eks update-kubeconfig --name myapp-dev-eks --region ap-south-1
-      - run: kubectl get nodes
+      - run: kubectl get pods -n default
+      - run: kubectl get ingress -n default
+      - run: kubectl auth can-i create deployments -n default
+      - run: kubectl auth can-i create ingresses.networking.k8s.io -n default
+      - run: kubectl auth can-i create secrets -n default
