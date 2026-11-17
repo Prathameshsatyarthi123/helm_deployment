@@ -1,0 +1,50 @@
+name: rollback
+
+on:
+  push:
+    branches: [feature/helm-deployment]
+    paths: ['rollback/revision.txt']
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  CLUSTER: myapp-dev-eks
+  RELEASE: myapp
+  NAMESPACE: default
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy                # shares the lock with build-and-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the revision
+        id: rev
+        run: |
+          REV=$(head -n1 rollback/revision.txt | tr -d '[:space:]')
+          case "$REV" in ''|*[!0-9]*) echo "First line of rollback/revision.txt must be a single number"; exit 1;; esac
+          echo "revision=$REV" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: azure/setup-helm@v4
+
+      - name: Connect to the cluster
+        run: aws eks update-kubeconfig --name $CLUSTER --region $AWS_REGION
+
+      - name: Show history, then roll back
+        env:
+          REVISION: ${{ steps.rev.outputs.revision }}
+        run: |
+          helm history $RELEASE --namespace $NAMESPACE
+          helm rollback $RELEASE "$REVISION" --namespace $NAMESPACE --wait --timeout 5m
+          helm history $RELEASE --namespace $NAMESPACE
