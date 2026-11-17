@@ -35,7 +35,7 @@ jobs:
 
   deploy:
     needs: validate
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/feature/helm-deployment'
     runs-on: ubuntu-latest
     concurrency:
       group: deploy
