@@ -1,0 +1,36 @@
+name: rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: "Helm revision to roll back to (see helm history myapp)"
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  CLUSTER: myapp-dev-eks
+  RELEASE: myapp
+  NAMESPACE: default
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: azure/setup-helm@v4
+      - name: Connect to the cluster
+        run: aws eks update-kubeconfig --name $CLUSTER --region $AWS_REGION
+      - name: Show history, then roll back
+        env:
+          REVISION: ${{ inputs.revision }}
+        run: |
+          helm history $RELEASE --namespace $NAMESPACE
+          helm rollback $RELEASE "$REVISION" --namespace $NAMESPACE --wait --timeout 5m
