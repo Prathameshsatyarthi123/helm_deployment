@@ -33,7 +33,7 @@ ingress:
     - path: /ping
       serviceName: ping-service
       servicePort: 8002
-    - path: /metrics
+    - path: /metric
       serviceName: metrics-service
       servicePort: 8001
 
